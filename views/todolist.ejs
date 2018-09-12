@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<h1>2 do</h1>
+<table id="tasks">
+    <tr>
+    </tr>
+</table>
+<hr>
+<h2>Add a new task</h2>
+<input type="text" id="new_task">
+<input type="button" value="valider" id="btn_new_task">
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    let socket = io.connect('https://todolist-julesang.eu-gb.mybluemix.net/');
+
+    socket.on('set_tasks', function (datas) {
+        var deleted = false;
+        // let old_tasks = [];
+        let prom = new Promise(function (resolve, reject) {
+            let tasks = $('.task');
+            for (let i = 0; i < tasks.length; i++) {
+                // old_tasks.push($('.task')[i].innerHTML)
+                let text = tasks[i].innerHTML
+                if (!datas.includes(text)) {
+                    console.log(tasks[i])
+                    $(tasks[i]).animate({
+                        opacity: 0
+                    }, 1000, function () {
+                        deleted = true;
+                        reset_tasks(datas);
+                    })
+                }
+            }
+            resolve(datas);
+        });
+        prom.then(function (datas) {
+            if (!deleted)
+                reset_tasks(datas)
+        })
+
+
+        /*for(let i = 0; i < old_tasks.length; i++){
+            if(!datas.includes(old_tasks[i])){
+
+            }
+        }*/
+
+    })
+
+    $('#btn_new_task').click(function () {
+        let val = $('#new_task').val();
+        if (val !== '') {
+            socket.emit('new_task', val);
+        }
+    });
+
+
+    function reset_tasks(datas) {
+        $('#tasks').empty()
+        for (let i = 0; i < datas.length; i++) {
+            let data = datas[i];
+            $('#tasks').append(
+                $('<tr></tr>')
+                    .append($('<td></td>')
+                        .append($('<input>')
+                            .attr('type', 'checkbox')
+                            .attr('class', 'check_task')
+                            .click(function () {
+                                let val = $(this).parent().next().text();
+                                socket.emit('check_task', val);
+                            })))
+                    .append($('<td></td>')
+                        .text(data)
+                        .attr('class', 'task'))
+                    .attr('class', 'row')
+            )
+        }
+    }
+</script>
+</body>
+</html>
